@@ -10,6 +10,10 @@ env = FinancialAssistantEnv()
 class StepRequest(BaseModel):
     action: Dict[str, Any]
 
+@app.get("/")
+def home():
+    return {"message": "OpenEnv Financial Assistant API online! Endpoints available: /reset, /step, /state"}
+
 @app.get("/reset")
 def reset_env(task_id: str = "1"):
     try:
