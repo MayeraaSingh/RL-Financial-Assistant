@@ -1,3 +1,12 @@
+---
+title: OpenEnv Financial Assistant
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # OpenEnv Personal Finance Assistant
 
 A real-world OpenEnv-compliant environment simulating a Personal Finance Assistant where an AI agent analyzes user expenses against a budget, providing actionable financial advice.
