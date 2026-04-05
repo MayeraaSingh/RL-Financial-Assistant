@@ -1,8 +1,7 @@
 import os
 import json
-import asyncio
 import textwrap
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 from environment.env import FinancialAssistantEnv
@@ -54,7 +53,7 @@ def build_user_prompt(step: int, task_desc: str, obs: dict, history: List[str]) 
     ).strip()
 
 
-def get_model_message(client: OpenAI, step: int, task_desc: str, obs: dict, history: List[str], system_prompt: str = "You are a Personal Finance Assistant.") -> str:
+def get_model_message(client: OpenAI, step: int, task_desc: str, obs: dict, history: List[str], system_prompt: str = "You are a Personal Finance Assistant.") -> Tuple[str, Optional[str]]:
     user_prompt = build_user_prompt(step, task_desc, obs, history)
     try:
         print(f"[DEBUG] Sending API request with API_KEY to {API_BASE_URL}...", flush=True)
@@ -70,16 +69,21 @@ def get_model_message(client: OpenAI, step: int, task_desc: str, obs: dict, hist
         )
         text = (completion.choices[0].message.content or "").strip()
         print(f"[DEBUG] ✅ API request succeeded! Response length: {len(text)} chars", flush=True)
-        return text if text else '{"analysis": "No response generated", "recommendation": "Retry"}'
+        return (text if text else '{"analysis": "No response generated", "recommendation": "Retry"}', None)
     except Exception as exc:
         error_str = str(exc)
+        if "insufficient_quota" in error_str.lower() or "exceeded your current quota" in error_str.lower():
+            print(f"[DEBUG] ❌ QUOTA ERROR: {exc}", flush=True)
+            return ('{"analysis": "Error occurred", "recommendation": "Unable to process"}', "quota_exceeded")
         if "invalid_api_key" in error_str.lower() or "unauthorized" in error_str.lower():
             print(f"[DEBUG] ❌ API KEY ERROR: {exc}", flush=True)
+            return ('{"analysis": "Error occurred", "recommendation": "Unable to process"}', "invalid_api_key")
         elif "connection" in error_str.lower():
             print(f"[DEBUG] ❌ CONNECTION ERROR: {exc}", flush=True)
+            return ('{"analysis": "Error occurred", "recommendation": "Unable to process"}', "connection_error")
         else:
             print(f"[DEBUG] ❌ API request failed: {exc}", flush=True)
-        return '{"analysis": "Error occurred", "recommendation": "Unable to process"}'
+            return ('{"analysis": "Error occurred", "recommendation": "Unable to process"}', "api_request_failed")
 
 
 def main() -> None:
@@ -101,7 +105,7 @@ def main() -> None:
     steps_taken = 0
     score = 0.0
     success = False
-    total_tasks = len(TASKS)
+    had_failures = False
     
     log_start(task="financial_assistant", env="FinancialAssistantEnv", model=MODEL_NAME)
     
@@ -116,7 +120,10 @@ def main() -> None:
                 
                 # Step 1: Get model response
                 step = 1
-                message = get_model_message(client, step, task_description, obs_dict, history)
+                message, model_error = get_model_message(client, step, task_description, obs_dict, history)
+                if model_error:
+                    had_failures = True
+                    error_msg = model_error
                 history.append(message)
                 
                 # Step 2: Execute action
@@ -141,10 +148,11 @@ def main() -> None:
                     error=error_msg
                 )
                 
-                if done:
+                if done and not error_msg:
                     success = True
                     
             except Exception as e:
+                had_failures = True
                 error_msg = str(e)
                 log_step(
                     step=steps_taken + 1,
@@ -155,7 +163,7 @@ def main() -> None:
                 )
         
         log_end(
-            success=success,
+            success=(success and not had_failures),
             steps=steps_taken,
             score=score,
             rewards=rewards
