@@ -3,8 +3,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv
-from io import StringIO
-import sys
+import threading
 
 from environment.env import FinancialAssistantEnv
 
@@ -16,6 +15,7 @@ env = FinancialAssistantEnv()
 
 # Global variable to store inference logs
 inference_logs = {"status": "idle", "logs": "", "completed": False}
+inference_lock = threading.Lock()
 
 class StepRequest(BaseModel):
     action: Dict[str, Any]
@@ -59,19 +59,20 @@ def state_env():
     return {"state": env.state()}
 
 @app.get("/run-inference")
-async def run_inference(background_tasks: BackgroundTasks):
+def run_inference_endpoint(background_tasks: BackgroundTasks):
     """Trigger inference pipeline in background"""
     # Check if API_KEY is set
     api_key = os.getenv("API_KEY")
     if not api_key:
         raise HTTPException(status_code=400, detail="API_KEY not configured. Add it to Repository secrets.")
     
-    inference_logs["status"] = "running"
-    inference_logs["logs"] = ""
-    inference_logs["completed"] = False
+    with inference_lock:
+        inference_logs["status"] = "running"
+        inference_logs["logs"] = "[INFERENCE] Starting...\n"
+        inference_logs["completed"] = False
     
     # Run inference in background
-    background_tasks.add_task(run_inference_task)
+    background_tasks.add_task(run_inference_background)
     
     return {
         "status": "inference started",
@@ -79,38 +80,44 @@ async def run_inference(background_tasks: BackgroundTasks):
     }
 
 @app.get("/inference-status")
-def inference_status():
+def inference_status_endpoint():
     """Get inference logs and status"""
-    return {
-        "status": inference_logs["status"],
-        "completed": inference_logs["completed"],
-        "logs": inference_logs["logs"]
-    }
+    with inference_lock:
+        return {
+            "status": inference_logs["status"],
+            "completed": inference_logs["completed"],
+            "logs": inference_logs["logs"]
+        }
 
-def run_inference_task():
-    """Execute inference pipeline"""
+def run_inference_background():
+    """Execute inference pipeline in background thread"""
     try:
-        # Capture stdout
-        captured_output = StringIO()
-        original_stdout = sys.stdout
-        sys.stdout = captured_output
+        with inference_lock:
+            inference_logs["logs"] += "[INFERENCE] Loading inference module...\n"
         
         # Import and run inference
-        from inference import main
-        main()
+        import sys
+        from io import StringIO
         
-        # Restore stdout
-        sys.stdout = original_stdout
+        # Capture stdout
+        captured = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
         
-        # Store logs
-        logs_output = captured_output.getvalue()
-        inference_logs["logs"] = logs_output
-        inference_logs["status"] = "completed"
-        inference_logs["completed"] = True
+        try:
+            from inference import main
+            main()
+        finally:
+            sys.stdout = old_stdout
+        
+        output = captured.getvalue()
+        with inference_lock:
+            inference_logs["logs"] += output
+            inference_logs["status"] = "completed"
+            inference_logs["completed"] = True
         
     except Exception as e:
-        sys.stdout = original_stdout
-        error_log = f"[ERROR] Inference failed: {str(e)}\n{captured_output.getvalue()}"
-        inference_logs["logs"] = error_log
-        inference_logs["status"] = "failed"
-        inference_logs["completed"] = True
+        with inference_lock:
+            inference_logs["logs"] += f"[ERROR] {str(e)}\n"
+            inference_logs["status"] = "failed"
+            inference_logs["completed"] = True

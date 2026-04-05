@@ -18,19 +18,8 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
 HF_TOKEN = os.getenv("HF_TOKEN")  # Optional
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional - used when using from_docker_image()
 
-# Validate required variables
-if not API_KEY:
-    error_msg = "API_KEY environment variable is required"
-    print(f"[ERROR] {error_msg}", flush=True)
-    # Don't raise immediately - allow module to import for API usage
-    # Only raise when main() is called
-
-# Debug: Log loaded configuration (mask API key)
-api_key_preview = f"{API_KEY[:10]}...{API_KEY[-4:]}" if API_KEY else "NOT SET"
-print(f"[DEBUG] Configuration loaded:", flush=True)
-print(f"[DEBUG]   API_KEY: {api_key_preview}", flush=True)
-print(f"[DEBUG]   API_BASE_URL: {API_BASE_URL}", flush=True)
-print(f"[DEBUG]   MODEL_NAME: {MODEL_NAME}", flush=True)
+# Validate required variables at runtime (not at import time)
+# This allows app.py to import without errors even if API_KEY is missing
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -96,6 +85,13 @@ def get_model_message(client: OpenAI, step: int, task_desc: str, obs: dict, hist
 def main() -> None:
     if not API_KEY:
         raise ValueError("API_KEY environment variable is required to run inference")
+    
+    # Debug: Log loaded configuration (mask API key)
+    api_key_preview = f"{API_KEY[:10]}...{API_KEY[-4:]}" if API_KEY else "NOT SET"
+    print(f"[DEBUG] Configuration loaded:", flush=True)
+    print(f"[DEBUG]   API_KEY: {api_key_preview}", flush=True)
+    print(f"[DEBUG]   API_BASE_URL: {API_BASE_URL}", flush=True)
+    print(f"[DEBUG]   MODEL_NAME: {MODEL_NAME}", flush=True)
     
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     env = FinancialAssistantEnv()
