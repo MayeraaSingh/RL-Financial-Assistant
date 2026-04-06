@@ -20,6 +20,10 @@ inference_lock = threading.Lock()
 class StepRequest(BaseModel):
     action: Dict[str, Any]
 
+
+class ResetRequest(BaseModel):
+    task_id: str = "1"
+
 @app.get("/")
 def home():
     return {
@@ -36,6 +40,17 @@ def home():
 @app.get("/reset")
 def reset_env(task_id: str = "1"):
     try:
+        obs = env.reset(task_id)
+        return {"observation": obs.dict()}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/reset")
+def reset_env_post(req: Optional[ResetRequest] = None):
+    """OpenEnv-compatible reset route. Accepts optional JSON body: {"task_id": "1"}."""
+    try:
+        task_id = req.task_id if req else "1"
         obs = env.reset(task_id)
         return {"observation": obs.dict()}
     except ValueError as e:
