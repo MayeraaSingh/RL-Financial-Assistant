@@ -106,6 +106,7 @@ def main() -> None:
     score = 0.0
     success = False
     had_failures = False
+    fatal_api_error = False
     
     log_start(task="financial_assistant", env="FinancialAssistantEnv", model=MODEL_NAME)
     
@@ -147,6 +148,11 @@ def main() -> None:
                     done=done,
                     error=error_msg
                 )
+
+                # Stop early on terminal API issues to avoid repeated failing calls.
+                if model_error in {"quota_exceeded", "invalid_api_key"}:
+                    fatal_api_error = True
+                    break
                 
                 if done and not error_msg:
                     success = True
@@ -161,6 +167,9 @@ def main() -> None:
                     done=True,
                     error=error_msg
                 )
+
+            if fatal_api_error:
+                break
         
         log_end(
             success=(success and not had_failures),

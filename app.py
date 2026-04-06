@@ -29,12 +29,21 @@ def home():
     return {
         "message": "OpenEnv Financial Assistant API online!",
         "endpoints": {
+            "/healthz": "Service health and config check",
             "/reset": "Reset environment",
             "/step": "Execute action",
             "/state": "Get current state",
             "/run-inference": "Run full inference pipeline",
             "/inference-status": "Check inference status and logs"
         }
+    }
+
+
+@app.get("/healthz")
+def healthz():
+    return {
+        "status": "ok",
+        "has_api_key": bool(os.getenv("API_KEY")),
     }
 
 @app.get("/reset")

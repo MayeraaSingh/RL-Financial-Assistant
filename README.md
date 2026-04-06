@@ -40,10 +40,15 @@ The agent responds with a structured JSON object containing:
    ```bash
    pip install -r requirements.txt
    ```
-2. Run the baseline inference script:
+2. Configure environment variables:
    ```bash
-   # Optionally provide API keys
-   OPENAI_API_KEY="your-key" python inference.py
+   API_KEY="your-key"
+   API_BASE_URL="https://api.openai.com/v1"
+   MODEL_NAME="gpt-3.5-turbo"
+   ```
+3. Run the baseline inference script:
+   ```bash
+   python inference.py
    ```
 
 ### Docker / Hugging Face Spaces
@@ -55,8 +60,18 @@ docker run -p 7860:7860 openenv-finance
 
 Once running, interact with the API endpoints:
 - `GET /reset?task_id=1` -> returns initial Observation
+- `POST /reset` -> accepts optional body `{"task_id": "1"}`
 - `POST /step` -> uses `{"action": {"analysis": "...", "recommendation": "..."}}`
 - `GET /state` -> returns internal State
+- `GET /healthz` -> returns service health and API key presence flag
+- `GET /run-inference` -> triggers background inference execution
+- `GET /inference-status` -> returns live inference status and logs
+
+## Multi-Mode Deployment Notes
+This repo includes the required files for multi-mode validation:
+- `pyproject.toml`
+- `uv.lock`
+- `server/app.py` with callable `main()` and `if __name__ == "__main__":` guard
 
 ## Baseline Scores
 Using the default inference mocks in `inference.py`, the agent perfectly passes all three tasks achieving a score of `1.0` in each setup. Use actual LLM models directly by passing valid `OPENAI_API_KEY` to examine variance.
