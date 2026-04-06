@@ -7,8 +7,9 @@ name = "personal-finance-assistant"
 version = "1.0.0"
 description = "OpenEnv Personal Finance Assistant"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
+    "openenv-core>=0.2.0",
     "fastapi",
     "uvicorn",
     "pydantic",
@@ -16,3 +17,6 @@ dependencies = [
     "requests",
     "python-dotenv",
 ]
+
+[project.scripts]
+server = "server.app:main"
