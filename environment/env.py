@@ -33,7 +33,7 @@ class FinancialAssistantEnv:
             action = Action(**action_dict)
         except (ValidationError, TypeError) as e:
             # Penalty for invalid action format
-            penalty_reward = Reward(score=-0.5, feedback="Action parsing failed. Invalid format or missing fields.")
+            penalty_reward = Reward(score=0.1, feedback="Action parsing failed. Invalid format or missing fields.")
             self._state.current_step += 1
             self._state.history.append({"action": action_dict, "reward": penalty_reward.dict()})
             return (self._state.current_observation, penalty_reward, True, {"error": str(e)})
