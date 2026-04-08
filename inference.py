@@ -10,8 +10,8 @@ from environment.tasks import TASKS
 # Load .env file if it exists
 load_dotenv()
 
-# Environment variables
-API_KEY = os.getenv("API_KEY")
+# Environment variables (HF_TOKEN is the required hackathon variable)
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
 HF_TOKEN = os.getenv("HF_TOKEN")  # Optional

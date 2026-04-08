@@ -64,4 +64,10 @@ GRADERS = {
     "1": grade_task_1,
     "2": grade_task_2,
     "3": grade_task_3,
+    "grade_task_1": grade_task_1,
+    "grade_task_2": grade_task_2,
+    "grade_task_3": grade_task_3,
+    "task_1_easy": grade_task_1,
+    "task_2_medium": grade_task_2,
+    "task_3_hard": grade_task_3,
 }
