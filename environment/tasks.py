@@ -1,4 +1,5 @@
 from .models import Observation, Expense
+from .graders import grade_task_1, grade_task_2, grade_task_3
 
 # We use static datasets for the tasks as per requirements.
 
@@ -6,7 +7,7 @@ TASKS = {
     "1": {
         "id": "1",
         "description": "Identify the highest expense category.",
-        "grader": "grade_task_1",
+        "grader": grade_task_1,
         "observation": Observation(
             expenses=[
                 Expense(category="food", amount=1200.0),
@@ -20,7 +21,7 @@ TASKS = {
     "2": {
         "id": "2",
         "description": "Detect overspending against a defined budget and suggest a reduction.",
-        "grader": "grade_task_2",
+        "grader": grade_task_2,
         "observation": Observation(
             expenses=[
                 Expense(category="shopping", amount=2000.0),
@@ -34,7 +35,7 @@ TASKS = {
     "3": {
         "id": "3",
         "description": "Provide a full financial advisory summarizing patterns and giving actionable recommendations.",
-        "grader": "grade_task_3",
+        "grader": grade_task_3,
         "observation": Observation(
             expenses=[
                 Expense(category="subscription_netflix", amount=20.0),
